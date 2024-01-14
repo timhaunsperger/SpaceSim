@@ -112,9 +112,11 @@ void main()
     if(oceanViewDepth > 0){
 
         float opacity = 1 - exp(-oceanViewDepth * 40 / oceanRadius);
-        vec3 oceanPos = (viewPos + viewDir * oceanDist);
-        vec3 norm = normalize(oceanPos - center);
-        sunDir = normalize(sunPos - oceanPos);
+        fragPos = (viewPos + viewDir * oceanDist);
+        depth = length(fragPos - viewPos);
+        vec3 norm = normalize(fragPos - center);
+        
+        sunDir = normalize(sunPos - fragPos);
         vec3 reflectDir = reflect(sunDir, norm);
                 
         float diffuse = max(dot(norm, sunDir), 0.0);

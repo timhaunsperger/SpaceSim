@@ -26,19 +26,6 @@ namespace TGameToolkit
             var app = new AppWindow(gameWindowSettings, nativeWindowSettings);
             var rand = new Random();
             
-            // for (int i = 0; i < 10; i++)
-            // {
-            //     var light = new GameObject{Pos = (MathF.Cos(i) * 5, (float)rand.NextDouble() * 5f + 10, MathF.Sin(i) * 5)};
-            //     Scene.GameObjects.Add(light);
-            //     light.AttachAttribute(new PointLight{LightStrength = 3f});
-            //     light.AttachAttribute(
-            //         MeshBuilder.GetNcSphereMesh( resolution:4, scale:0.2f).WithMaterial("base",  new Material()
-            //         {
-            //             Tex = Texture.Box((255, 255, 255, 255), 100, 100), 
-            //             AmbientStrength = 10
-            //         }));
-            // }
-            
             //app.RootElements.Add(new Element(app, texture:Noise.GetNoiseTex(3, 1000)));
 
             var sky = new GameObject();
