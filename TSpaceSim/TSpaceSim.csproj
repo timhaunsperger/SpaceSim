@@ -35,6 +35,15 @@
       <None Update="Shaders\sky.frag">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="Shaders\basic.vert">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Shaders\Noise.comp">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Shaders\sun.frag">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
       <None Update="Shaders\sky.vert">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>

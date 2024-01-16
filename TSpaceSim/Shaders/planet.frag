@@ -26,7 +26,7 @@ void main()
     } else if(elevation > oceanRadius * 1.05){
         FragColor = vec4(1, 1, 1, 1);
     } else if(steepness < 1.01){
-        FragColor = vec4(0.1, 1, 0.1, 1);
+        FragColor = vec4(0.1, 0.5, 0.1, 1);
     } else {
         FragColor = vec4(0, 0.7, 0.1, 1);
     }

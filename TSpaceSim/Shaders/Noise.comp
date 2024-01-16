@@ -1,0 +1,31 @@
+﻿#version 460 core
+
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout (rgba32f, binding = 0) uniform image3D imgOutput;
+
+layout(std430, binding = 0) buffer pointData{
+    float pointCoords[];
+};
+
+void main() {
+    ivec3 texelCoord = ivec3(gl_GlobalInvocationID.xyz);
+    vec3 coord = vec3(
+        float(texelCoord.x)/(gl_NumWorkGroups.x), 
+        float(texelCoord.y)/(gl_NumWorkGroups.y), 
+        float(texelCoord.z)/(gl_NumWorkGroups.z));
+
+    float dist = 1;
+    for (int i = 0; i < pointCoords.length(); i+=3) {
+        
+        float px = pointCoords[i];
+        float py = pointCoords[i+1];
+        float pz = pointCoords[i+2];
+        
+        float pointDist = length(vec3(px, py, pz) - coord);
+        if(pointDist < dist){dist = pointDist;}
+        
+
+    }
+
+    imageStore(imgOutput, texelCoord, vec4(vec3(max(0.7 - dist * sqrt(pointCoords.length()/8), 0)), 0));
+}

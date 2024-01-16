@@ -1,8 +1,7 @@
 ﻿using OpenTK.Mathematics;
 using TGameToolkit;
 using TGameToolkit.Attributes;
-using TGameToolkit.Drawing;
-using TGameToolkit.Lighting;
+using TGameToolkit.Graphics;
 using TGameToolkit.Objects;
 using TGameToolkit.Utils;
 
@@ -32,8 +31,6 @@ public class Planet : GameObject
     public float ContAmp = 0.09f;
     public bool Continents = true;
     
-    
-    public float ElevationBias = -0.001f;
 
     private RenderMesh _surfaceMesh;
     
@@ -64,6 +61,16 @@ public class Planet : GameObject
         Meshes.Add(_surfaceMesh);
     }
 
+    protected override void OnUpdate(double deltaTime)
+    {
+        var vertices = _surfaceMesh.GetVertices();
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            vertices[i] = Quaterniond.FromEulerAngles(0.001, 0, 0) * vertices[i];
+        }
+        _surfaceMesh.SetVertices(vertices);
+    }
+
     public override void OnModify()
     {
         Meshes.Clear();
@@ -86,7 +93,7 @@ public class Planet : GameObject
             var mtnNoise = Mountains ? (1 - Math.Abs(Noise.Fbr(p * MtnFreq  / PlanetRadius, 1))) * MtnAmp * Math.Max(mtnRangeNoise, 0) * contNoise : 0;
             var ridgeNoise = Ridges ? (0.5 - Math.Abs(Noise.GetWarpedNoise(p * RidgeFreq  / PlanetRadius, 1))) * RidgeAmp : 0;
             var hillNoise = Hills ? -Math.Max(-mtnRangeNoise, 0) * Noise.Fbr(p * HillFreq  / PlanetRadius) * HillAmp * contNoise : 0;
-            var elevation = contNoise + mtnNoise + hillNoise + ridgeNoise + ElevationBias;
+            var elevation = contNoise + mtnNoise + hillNoise + ridgeNoise;
             
             vertices[i] += elevation * (vertices[i] - Pos).Normalized() * PlanetRadius;
             

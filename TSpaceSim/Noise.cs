@@ -1,6 +1,7 @@
 ﻿using OpenTK.Graphics.ES20;
 using OpenTK.Mathematics;
-using TGameToolkit.Drawing;
+using TGameToolkit.Graphics;
+using PixelType = OpenTK.Graphics.OpenGL4.PixelType;
 
 namespace TSpaceSim;
 
@@ -9,6 +10,7 @@ public static class Noise
     private static Random _random = new Random(0);
     private static int _tileSize = 8;
     private static Vector3[,,] _grid = new Vector3[_tileSize,_tileSize, _tileSize];
+    private static Vector3[] _points;
     
     static Noise()
     {
@@ -126,6 +128,44 @@ public static class Noise
         
         return Fbr(p + q * 4);
     }
+
+    public static Texture WorleyNoiseTex(int width, int height, int density)
+    {
+        _points = new Vector3[density];
+        for (int i = 0; i < density; i++)
+        {
+            var point = new Vector3(_random.NextSingle(), _random.NextSingle(), _random.NextSingle());
+            _points[i] = point;
+        }
+
+        var resData = new float[width * height * 4];
+        for (int i = 0; i < height; i++)
+        {
+            var rowIndex = i * width * 4;
+            var yPos = i / (float)height;
+            for (int j = 0; j < width; j++)
+            {
+                var closestPoint = _points[0];
+                var closestPointDist = (new Vector3(j / (float)width, yPos, 0) - closestPoint).LengthSquared;
+                for (int k = 0; k < _points.Length; k++)
+                {
+                    var pointDist = (new Vector3(j / (float)width, yPos, 0) - _points[k]).LengthSquared;
+                    if (pointDist < closestPointDist)
+                    {
+                        closestPointDist = pointDist;
+                    }
+                }
+
+                var val = 1-MathF.Sqrt(closestPointDist) * MathF.Cbrt(density) / 2;
+                var index = rowIndex + j * 4;
+                resData[index] = val;
+                resData[index+1] = val;
+                resData[index+2] = val;
+                resData[index+3] = 1;
+            }
+        }
+        return new Texture(resData, width, height);
+    }
     
     public static Texture GetNoiseTex(int tiles, int res)
     {
@@ -134,24 +174,22 @@ public static class Noise
         float fWidth = width;
         float fHeight = height;
         
-        byte[] data = new byte[width * height * 4];
+        float[] data = new float[width * height * 4];
         for (int i = 0; i < height; i++)
         {
             for (int j = 0; j < width; j++)
             {
-                float noiseVal = 0;
-                noiseVal += 
+                float noiseVal = 
                     1 - Math.Abs(PerlinNoise((j / fWidth * tiles * _tileSize - 4, i / fHeight * tiles * _tileSize - 4, 0)));
-                byte noiseByte = (byte)(noiseVal * 255);
+                var noiseByte = noiseVal;
                 var index = (i * width + j) * 4;
                 data[index] = noiseByte;
                 data[index+1] = noiseByte;
                 data[index+2] = noiseByte;
-                data[index+3] = 255;
+                data[index+3] = 1f;
             }
         }
     
         return new Texture(data, width, height);
     }
-
 }
