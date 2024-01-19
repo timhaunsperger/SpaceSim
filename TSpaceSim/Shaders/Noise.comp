@@ -4,28 +4,50 @@ layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 layout (rgba32f, binding = 0) uniform image3D imgOutput;
 
 layout(std430, binding = 0) buffer pointData{
-    float pointCoords[];
+    float points[];
 };
+
+uniform int colorChannel = 1;
+uniform float noiseBias = 0.2;
+uniform float radius = 0.5;
 
 void main() {
     ivec3 texelCoord = ivec3(gl_GlobalInvocationID.xyz);
-    vec3 coord = vec3(
+    vec3 coord = (vec3(
         float(texelCoord.x)/(gl_NumWorkGroups.x), 
         float(texelCoord.y)/(gl_NumWorkGroups.y), 
-        float(texelCoord.z)/(gl_NumWorkGroups.z));
-
-    float dist = 1;
-    for (int i = 0; i < pointCoords.length(); i+=3) {
-        
-        float px = pointCoords[i];
-        float py = pointCoords[i+1];
-        float pz = pointCoords[i+2];
-        
-        float pointDist = length(vec3(px, py, pz) - coord);
-        if(pointDist < dist){dist = pointDist;}
-        
-
+        float(texelCoord.z)/(gl_NumWorkGroups.z)) - vec3(0.5)) ;
+    float rad = length(coord);
+    if(rad < 0.425){
+        return;
     }
-
-    imageStore(imgOutput, texelCoord, vec4(vec3(max(0.7 - dist * sqrt(pointCoords.length()/8), 0)), 0));
+    if(rad > 0.475){
+        return;
+    }
+    
+    // --Convert to spherical-- Converting to spherical coords allows noise freqency scaling by multiplying angles
+    // avoid div by 0
+    if (rad == 0) rad = 0.001;
+    if (coord.x == 0) coord.x == 0.001;
+    float theta = atan(coord.y/coord.x);
+    // Account for limited range of arctan function
+    if (coord.x < 0){ theta += 3.14159;}
+    float phi = acos(coord.z/rad);
+    
+    float numPoints = points.length();
+    int numOctaves = 4;
+    float noiseVal = 0;
+    for (int oct = 0; oct < numOctaves; oct++) {
+        float dist = 1;
+        for (int i = 0; i < numPoints; i+=3) {
+            float t = theta * pow(2, oct);
+            float p = phi * pow(2, oct);
+            vec3 pos = rad * vec3(sin(p)*cos(t), sin(p)*sin(t), cos(p)) + vec3(0.5);
+            float pointDist = length(pos - vec3(points[i], points[i+1], points[i+2]));
+            
+            if(pointDist < dist){ dist = pointDist; }
+        }
+        noiseVal += dist / pow(2, oct);
+    }
+    imageStore(imgOutput, texelCoord, vec4(max(noiseBias - noiseVal, 0) / noiseBias)); 
 }

@@ -66,7 +66,7 @@ public class Planet : GameObject
         var vertices = _surfaceMesh.GetVertices();
         for (int i = 0; i < vertices.Length; i++)
         {
-            vertices[i] = Quaterniond.FromEulerAngles(0.001, 0, 0) * vertices[i];
+            vertices[i] = Quaterniond.FromEulerAngles(0.001, 0.001, 0) * vertices[i];
         }
         _surfaceMesh.SetVertices(vertices);
     }

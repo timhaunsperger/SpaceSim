@@ -25,27 +25,27 @@ namespace TGameToolkit
             var app = new AppWindow(gameWindowSettings, nativeWindowSettings);
             var rand = new Random();
             
-            //app.RootElements.Add(new Element(app, texture:Noise.WorleyNoiseTex(1000, 1000, 300)));
             var comp = new ComputeShader("Shaders/Noise.comp");
             var tex = new Texture3d(128, 128, 128, internalFormat: PixelInternalFormat.Rgba32f, wrapBehavior: TextureWrapMode.Repeat);
             GL.BindImageTexture(0, tex.Handle, 0, true, 0, TextureAccess.ReadOnly, SizedInternalFormat.Rgba32f);
-            float[] noisePoints = new float[600];
             
-            var variation = 0f;
-            
-            for (int i = 0; i < noisePoints.Length; i+=3)
+            float[] points = new float[150];
+            float avgRad = 0.35f;
+            for (int i = 0; i < points.Length; i+=3)
             {
-                var rndPt1 = new Vector3(rand.NextSingle() * 2 - 1, rand.NextSingle() * 2 - 1, rand.NextSingle() * 2 - 1);
-                var rndPt2 = new Vector3(rand.NextSingle() * 2 - 1, rand.NextSingle() * 2 - 1, rand.NextSingle() * 2 - 1);
-                var noisePt = rndPt1.Normalized() + rndPt2 * variation;
-                noisePoints[i] = (noisePt.X + 1) / 2;
-                noisePoints[i+1] = (noisePt.Y + 1) / 2;
-                noisePoints[i+2] = (noisePt.Z + 1) / 2;
+                // Generate random points on sphere
+                var r = avgRad + rand.NextSingle() / 15;
+                var theta = rand.NextSingle() * 6.28318f;
+                var phi = MathF.Acos(2 * rand.NextSingle() - 1);
+                // Convert to cartesian, center range on 0.5
+                points[i] = r * MathF.Sin(phi) * MathF.Cos(theta) + 0.5f;
+                points[i+1] = r * MathF.Sin(phi) * MathF.Sin(theta) + 0.5f;
+                points[i+2] = r * MathF.Cos(phi) + 0.5f;
             }
 
             int noisePointsBuf = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ShaderStorageBuffer, noisePointsBuf);
-            GL.BufferData(BufferTarget.ShaderStorageBuffer, noisePoints.Length * 4, noisePoints, BufferUsageHint.StaticRead);
+            GL.BufferData(BufferTarget.ShaderStorageBuffer, points.Length * 4, points, BufferUsageHint.StaticRead);
             GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, noisePointsBuf);
             
             comp.Dispatch(128, 128, 128);
@@ -72,7 +72,7 @@ namespace TGameToolkit
                 s.SetMatrix4("projection", Scene.GameCamera.GetProjectionMatrix());
             };
             var sunMesh = MeshBuilder.GetNcSphereMesh(sunShader, 10, 2);
-            sunMesh.Move(new Vector3d(60, -3, 18));
+            sunMesh.Move(new Vector3d(60, 3, 18));
             sun.Meshes.Add(sunMesh);
             Scene.GameObjects.Add(sun);
             
@@ -85,10 +85,9 @@ namespace TGameToolkit
             var shader = new Shader(Postprocessor.BaseVtxShaderSrc, File.ReadAllText("Shaders/postprocess.frag"));
             shader.Use();
             shader.SetFloat("atmRadius", planet.PlanetRadius*1.25f);
-            shader.SetFloat("cloudRadius", planet.PlanetRadius*1.2f);
             shader.SetFloat("oceanRadius", planet.PlanetRadius);
             shader.SetInt("atmDepthSteps", 10);
-            shader.SetFloat("scatterStrength", 5f);
+            shader.SetFloat("scatterStrength", 3f);
             shader.SetFloat("cloudScatterStr", 3f);
             shader.OnUse = s =>
             {
@@ -97,8 +96,8 @@ namespace TGameToolkit
                 s.SetVector3("center", planet.Pos);
                 s.SetVector3("viewPos", Scene.GameCamera.Pos);
                 s.SetVector3("oceanCol", new Vector3(0, 0.2f, 1));
-                s.SetVector3("rgbScatterFactors", new Vector3(0.04165f, 0.1425f, 0.2772f));
-                s.SetVector3("sunPos", new Vector3(100, -5, 30));
+                s.SetVector3("rgbScatterFactors", new Vector3(0.04165f, 0.1325f, 0.2972f));
+                s.SetVector3("sunPos", new Vector3(100, 5, 30));
             };
             Scene.ScenePostprocessor = new Postprocessor(shader);
             

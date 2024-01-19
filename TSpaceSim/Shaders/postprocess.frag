@@ -15,11 +15,11 @@ uniform vec3 oceanCol;
 
 uniform int atmDepthSteps;
 uniform float atmRadius;
-uniform float cloudRadius;
 uniform vec3 rgbScatterFactors;
 uniform float scatterStrength;
 uniform float cloudScatterStr;
 uniform vec3 sunPos;
+uniform vec3 sunCol = vec3(1,0.95294,0.9294) * 2;
 
 // Return sphereEnterDist, distThroughSphere
 // If inside, dstToSphere = 0
@@ -49,18 +49,21 @@ vec2 raySphere(vec3 center, float radius, vec3 rayOrigin, vec3 lookDir){
 float atmDensity(vec3 samplePos){
     float altitude = length(samplePos - center) - oceanRadius;
     float altitudePercent = altitude / (atmRadius - oceanRadius);
-    return exp(-altitudePercent * 6) * (1 - altitudePercent) * scatterStrength;
+    return exp(-altitudePercent * 4) * (1 - altitudePercent) * scatterStrength;
 }
 
 // Returns (optDepth, cloudDepth)
 vec3 opticalDepth(vec3 rayOrigin, vec3 rayDir, float rayLen){
-    float stepSize = rayLen / (atmDepthSteps - 1);
+    float stepSize= rayLen / (7 - 1);
     vec3 optDepth = vec3(0);
     vec3 samplePoint = rayOrigin;
+    float stepDist = 0;
     
-    for (int i = 0; i < atmDepthSteps; i++) {
-        float density = atmDensity(samplePoint) * stepSize;
-        optDepth += density * (rgbScatterFactors + texture(cloudTex, (samplePoint / cloudRadius + vec3(1)) / 2).xyz);
+    for(int i = 0; i < 7; i++){
+        float density = atmDensity(samplePoint);
+        float cloud = texture(cloudTex, (samplePoint / atmRadius + vec3(1)) / 2).x;
+
+        optDepth += (density * rgbScatterFactors + cloud * cloudScatterStr)  * stepSize;
         samplePoint += stepSize * rayDir;
     }
     return optDepth;
@@ -70,7 +73,6 @@ vec3 calcScatter(vec3 rayOrigin, vec3 rayDir, float rayLen, vec3 originalCol){
     float stepSize = rayLen / (atmDepthSteps - 1);
     vec3 scatteredLight = vec3(0);
     vec3 scatterPoint = rayOrigin;
-    vec2 viewRayOptDepth = vec2(0);
     vec3 sunRayOptDepth = vec3(0);
     
     vec3 transmittance = vec3(1);
@@ -83,24 +85,27 @@ vec3 calcScatter(vec3 rayOrigin, vec3 rayDir, float rayLen, vec3 originalCol){
         sunRayOptDepth = opticalDepth(scatterPoint, sunDir, sunRayLen);
         float density = atmDensity(scatterPoint);
         
-        float cloudDensity = texture(cloudTex, (scatterPoint / cloudRadius + vec3(1)) / 2).x * cloudScatterStr;
-        transmittance *= exp(-density * stepSize * (rgbScatterFactors + vec3(cloudDensity)));
+        float cloudDensity = texture(cloudTex, (scatterPoint / atmRadius + vec3(1)) / 2).x * cloudScatterStr;
         
         float cosine = dot(sunDir, rayDir);
-        float phaseFuncRaleigh = 0.75 * (1 + cosine * cosine);
-        //float phaseFuncMie = 0.256 * (1 + cosine * cosine)/(1.5625-1.5*cosine);
+        float cosSqr = cosine * cosine;
+        float phaseFuncRaleigh = 0.75 * (1 + cosSqr);
+        float phaseFuncMie = 0.256 * (1 + cosSqr)/(1.5625-1.5*cosine);
         //float phaseFuncMie = 0.4 * (1 + cosine * cosine)/(1.36-1.2*cosine);
-        float phaseFuncMie = 0.101423 * (1 + cosine * cosine)/(1.81-1.8*cosine);
+        //float phaseFuncMie = 0.101423 * (1 + cosine * cosine)/(1.81-1.8*cosine);
 
-        vec3 cloudScatter = vec3(phaseFuncMie * vec3(cloudDensity));
-        vec3 atmScatter = rgbScatterFactors * phaseFuncRaleigh;
+        vec3 cloudScatter = vec3(cloudDensity) * stepSize;
+        vec3 atmScatter = rgbScatterFactors * density * stepSize;
         
-        inScattering += density * exp(-sunRayOptDepth) * transmittance * stepSize * (cloudScatter + atmScatter);
+        transmittance *= exp(-(atmScatter + cloudScatter));
+        inScattering += exp(-sunRayOptDepth) * transmittance * (cloudScatter * phaseFuncMie + atmScatter * phaseFuncRaleigh);
+        
+        if(transmittance.x < 0.05){break;}
         
         scatterPoint += rayDir * stepSize;
     }
     vec3 surfaceIllumination = exp(-sunRayOptDepth);
-    return originalCol * surfaceIllumination * transmittance + inScattering;
+    return (originalCol * surfaceIllumination * transmittance + inScattering) * sunCol;
 }
 
 float LinearizeDepth(float depth)
