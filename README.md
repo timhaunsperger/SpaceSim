@@ -1,0 +1,1 @@
+Custom implementation of combined atmospheric scattering and volumetric clouds on a planet with noise based terrain generation. Built using the TGameToolkit library with lighting effects in a custom postprocessing shader.
